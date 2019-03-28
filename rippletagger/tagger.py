@@ -17,9 +17,9 @@ class Tagger(SCRDRTree):
         self.tree_from_file(data_path + ".RDR")
         self.word_to_tag_dict = self.dictionary_from_file(data_path + ".DICT")
 
-    def tag(self, line):
+    def tag(self, line, pretokenized=True):
         tagger = NaiveTagger(self.word_to_tag_dict)
-        tagged_sentence_initial = tagger.tag(line)
+        tagged_sentence_initial = tagger.tag(line, pretokenized)
 
         tagged_sentence = []
 
@@ -34,36 +34,37 @@ class NaiveTagger:
     def __init__(self, word_to_tag_dict):
         self.word_to_tag_dict = word_to_tag_dict
 
-    def tag(self, line):
-        words = line.strip().split()
+    def tag(self, tokens, pretokenized=True):
+        if not pretokenized:
+            tokens = tokens.strip().split()
         tagged_sentence = []
-        for word in words:
-            if word in [u"“", u"”", u"\""]:
+        for token in tokens:
+            if token in [u"“", u"”", u"\""]:
                 tagged_sentence.append(("''", self.word_to_tag_dict["''"]))
                 continue
 
             tag = ''
 
-            if word in self.word_to_tag_dict:
-                tag = self.word_to_tag_dict[word]
+            if token in self.word_to_tag_dict:
+                tag = self.word_to_tag_dict[token]
 
-            elif word.lower() in self.word_to_tag_dict:
-                tag = self.word_to_tag_dict[word.lower()]
+            elif token.lower() in self.word_to_tag_dict:
+                tag = self.word_to_tag_dict[token.lower()]
 
             else:
-                if re.search(r"[0-9]+", word) is not None:
+                if re.search(r"[0-9]+", token) is not None:
                     tag = self.word_to_tag_dict["TAG4UNKN-NUM"]
 
                 else:
                     suffix_l2 = suffix_l3 = suffix_l4 = suffix_l5 = None
-                    word_len = len(word)
+                    word_len = len(token)
                     if word_len >= 4:
-                        suffix_l3 = ".*" + word[-3:]
-                        suffix_l2 = ".*" + word[-2:]
+                        suffix_l3 = ".*" + token[-3:]
+                        suffix_l2 = ".*" + token[-2:]
                     if word_len >= 5:
-                        suffix_l4 = ".*" + word[-4:]
+                        suffix_l4 = ".*" + token[-4:]
                     if word_len >= 6:
-                        suffix_l5 = ".*" + word[-5:]
+                        suffix_l5 = ".*" + token[-5:]
 
                     if suffix_l5 in self.word_to_tag_dict:
                         tag = self.word_to_tag_dict[suffix_l5]
@@ -73,12 +74,12 @@ class NaiveTagger:
                         tag = self.word_to_tag_dict[suffix_l3]
                     elif suffix_l2 in self.word_to_tag_dict:
                         tag = self.word_to_tag_dict[suffix_l2]
-                    elif word[0].isupper():
+                    elif token[0].isupper():
                         tag = self.word_to_tag_dict["TAG4UNKN-CAPITAL"]
                     else:
                         tag = self.word_to_tag_dict["TAG4UNKN-WORD"]
 
-            tagged_sentence.append((word, tag))
+            tagged_sentence.append((token, tag))
 
         return tagged_sentence
 
